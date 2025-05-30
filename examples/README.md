@@ -1,8 +1,10 @@
 # Examples
 
-This directory contains examples for different programming languages and use cases with GitHub Copilot Agent Mode.
+This directory will contain examples for different programming languages and use cases with GitHub Copilot Agent Mode.
 
-## Directory Structure
+## Planned Directory Structure
+
+The following directories are planned to be added as examples are developed:
 
 - `javascript/` - JavaScript and Node.js examples
 - `python/` - Python examples  
@@ -12,7 +14,7 @@ This directory contains examples for different programming languages and use cas
 
 ## Example Categories
 
-Each language directory may include examples for:
+Each language directory will include examples for:
 
 1. **Code Generation** - Having Copilot Agent generate code from descriptions
 2. **Code Review** - Using Agent Mode to review and improve existing code
@@ -21,8 +23,15 @@ Each language directory may include examples for:
 5. **Refactoring** - Restructuring and optimizing code
 6. **Bug Fixes** - Identifying and fixing issues
 
-## How to Use
+## How to Contribute Examples
 
-1. Navigate to the language-specific directory
-2. Follow the README instructions in each directory
-3. Experiment with Agent Mode features using the provided examples
+To add examples to this playground:
+
+1. Create a new directory for your programming language (if it doesn't exist)
+2. Add a README.md with specific instructions for that language
+3. Include well-commented example files demonstrating Agent Mode features
+4. Follow the example categories listed above
+
+## Current Status
+
+This examples directory is currently being populated. Check back for language-specific examples as they are added to the repository.
