@@ -1,0 +1,144 @@
+name: Deploy Pipeline
+
+on:
+  push:
+    branches: [ master ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+        - staging
+        - production
+
+env:
+  NODE_VERSION: '20'
+  AWS_REGION: 'us-east-1'
+
+jobs:
+  deploy-staging:
+    name: 'Deploy to Staging'
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging')
+    environment: staging
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Install Next.js dependencies
+      working-directory: ./nextjs-app
+      run: npm ci
+
+    - name: Build Next.js application
+      working-directory: ./nextjs-app
+      run: npm run build
+
+    - name: Install CDK dependencies
+      working-directory: ./infrastructure
+      run: npm install
+
+    - name: CDK Bootstrap (if needed)
+      working-directory: ./infrastructure
+      run: |
+        npx cdk bootstrap --context stage=staging || echo "Bootstrap already exists"
+
+    - name: Deploy CDK stacks to staging
+      working-directory: ./infrastructure
+      run: |
+        npx cdk deploy --all --require-approval never --context stage=staging
+
+    - name: Get deployment outputs
+      working-directory: ./infrastructure
+      run: |
+        echo "## Staging Deployment Complete! 🎉" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Deployed Resources:" >> $GITHUB_STEP_SUMMARY
+        npx cdk ls --context stage=staging >> $GITHUB_STEP_SUMMARY || echo "No stacks found"
+
+  deploy-production:
+    name: 'Deploy to Production'
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production'
+    environment: production
+    needs: []  # Manual deployment only
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_PROD }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_PROD }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Install Next.js dependencies
+      working-directory: ./nextjs-app
+      run: npm ci
+
+    - name: Build Next.js application
+      working-directory: ./nextjs-app
+      run: npm run build
+
+    - name: Install CDK dependencies
+      working-directory: ./infrastructure
+      run: npm install
+
+    - name: CDK Bootstrap (if needed)
+      working-directory: ./infrastructure
+      run: |
+        npx cdk bootstrap --context stage=prod || echo "Bootstrap already exists"
+
+    - name: Deploy CDK stacks to production
+      working-directory: ./infrastructure
+      run: |
+        npx cdk deploy --all --require-approval never --context stage=prod
+
+    - name: Get deployment outputs
+      working-directory: ./infrastructure
+      run: |
+        echo "## Production Deployment Complete! 🚀" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Deployed Resources:" >> $GITHUB_STEP_SUMMARY
+        npx cdk ls --context stage=prod >> $GITHUB_STEP_SUMMARY || echo "No stacks found"
+
+  notify-deployment:
+    name: 'Notify Deployment Status'
+    runs-on: ubuntu-latest
+    needs: [deploy-staging]
+    if: always()
+    
+    steps:
+    - name: Deployment notification
+      run: |
+        if [ "${{ needs.deploy-staging.result }}" == "success" ]; then
+          echo "✅ Staging deployment successful!"
+          echo "🌐 Application is available at the staging environment"
+        else
+          echo "❌ Staging deployment failed!"
+          echo "🔍 Check the logs for more details"
+        fi

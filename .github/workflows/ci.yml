@@ -1,0 +1,145 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ master, develop ]
+  pull_request:
+    branches: [ master, develop ]
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  lint-and-test-nextjs:
+    name: 'Next.js: Lint & Test'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./nextjs-app
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: './nextjs-app/package-lock.json'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run ESLint
+      run: npm run lint
+
+    - name: Run type check
+      run: npm run type-check
+
+    - name: Run tests
+      run: npm run test:ci
+      env:
+        CI: true
+
+    - name: Build application
+      run: npm run build
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: nextjs-build
+        path: |
+          ./nextjs-app/.next/
+          ./nextjs-app/out/
+        retention-days: 1
+
+  lint-and-validate-infrastructure:
+    name: 'CDK: Lint & Validate'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./infrastructure
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: './infrastructure/package.json'
+
+    - name: Install dependencies
+      run: npm install
+
+    - name: Compile TypeScript
+      run: npm run build
+
+    - name: Run CDK synth (validation)
+      run: npm run synth
+      env:
+        CDK_DEFAULT_ACCOUNT: '123456789012'  # Dummy account for validation
+        CDK_DEFAULT_REGION: 'us-east-1'
+
+    - name: Upload CDK artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: cdk-artifacts
+        path: ./infrastructure/cdk.out/
+        retention-days: 1
+
+  security-scan:
+    name: 'Security Scan'
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+
+    - name: Audit Next.js dependencies
+      working-directory: ./nextjs-app
+      run: |
+        npm audit --audit-level=high
+        
+    - name: Audit CDK dependencies  
+      working-directory: ./infrastructure
+      run: |
+        npm install
+        npm audit --audit-level=high
+
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+
+    - name: Upload Trivy scan results
+      uses: github/codeql-action/upload-sarif@v3
+      if: always()
+      with:
+        sarif_file: 'trivy-results.sarif'
+
+  validate-pr:
+    name: 'PR Validation'
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    needs: [lint-and-test-nextjs, lint-and-validate-infrastructure, security-scan]
+    
+    steps:
+    - name: PR validation summary
+      run: |
+        echo "✅ All checks passed!"
+        echo "📦 Next.js build: Success"
+        echo "🏗️  CDK validation: Success" 
+        echo "🔒 Security scan: Success"
+        echo "This PR is ready for review and merge."

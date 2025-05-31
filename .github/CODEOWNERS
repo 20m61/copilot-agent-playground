@@ -1,0 +1,10 @@
+# Global code owners
+* @20m61
+
+# Infrastructure changes require additional review
+/infrastructure/ @20m61
+/.github/workflows/ @20m61
+
+# Production deployments require special approval
+/infrastructure/bin/app.ts @20m61
+/.github/workflows/deploy.yml @20m61

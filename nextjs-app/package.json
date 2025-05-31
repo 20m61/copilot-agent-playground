@@ -6,7 +6,11 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "type-check": "tsc --noEmit",
+    "test": "echo \"No tests yet\" && exit 0",
+    "test:ci": "npm run test",
+    "test:watch": "npm run test -- --watch"
   },
   "dependencies": {
     "@vercel/analytics": "^1.5.0",

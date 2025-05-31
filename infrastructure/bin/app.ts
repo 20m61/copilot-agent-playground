@@ -3,6 +3,7 @@ import 'source-map-support/register';
 import * as cdk from 'aws-cdk-lib';
 import { SharedStack } from '../lib/stacks/shared-stack';
 import { FrontendStack } from '../lib/stacks/frontend-stack';
+import { CicdStack } from '../lib/stacks/cicd-stack';
 
 const app = new cdk.App();
 
@@ -51,6 +52,26 @@ const frontendStack = new FrontendStack(app, `${stackPrefix}-frontend`, {
 
 // Add dependency
 frontendStack.addDependency(sharedStack);
+
+// Create CI/CD stack for staging and production only
+if (stage === 'staging' || stage === 'prod') {
+  const cicdStack = new CicdStack(app, `${stackPrefix}-cicd`, {
+    env,
+    stage,
+    githubOwner: '20m61', // Update with your GitHub username
+    githubRepo: 'copilot-agent-playground',
+    githubBranch: stage === 'prod' ? 'master' : 'develop',
+    description: `CI/CD pipeline for Next.js Playground - ${stage} environment`,
+    tags: {
+      Environment: stage,
+      Project: 'nextjs-playground',
+      ManagedBy: 'CDK',
+    },
+  });
+
+  // CI/CD stack is independent of other stacks
+  cicdStack.addDependency(frontendStack);
+}
 
 // Add stack-level tags
 cdk.Tags.of(app).add('Project', 'nextjs-playground');
