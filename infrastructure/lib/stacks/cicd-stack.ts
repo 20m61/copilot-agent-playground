@@ -45,7 +45,6 @@ export class CicdStack extends cdk.Stack {
       source: codebuild.Source.gitHub({
         owner: props.githubOwner,
         repo: props.githubRepo,
-        branchOrRef: props.githubBranch,
       }),
       environment: {
         buildImage: codebuild.LinuxBuildImage.STANDARD_7_0,

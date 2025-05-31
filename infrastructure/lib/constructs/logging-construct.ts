@@ -205,11 +205,13 @@ exports.handler = async (event) => {
     id: string,
     metricName: string,
     threshold: number,
+    applicationName: string,
+    stage: string,
     comparisonOperator: cloudwatch.ComparisonOperator = cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD
   ): cloudwatch.Alarm {
     return new cloudwatch.Alarm(this, id, {
       metric: new cloudwatch.Metric({
-        namespace: `${this.node.tryGetContext('applicationName')}/\${this.node.tryGetContext('stage')}`,
+        namespace: `${applicationName}/${stage}`,
         metricName,
         period: cdk.Duration.minutes(5),
         statistic: 'Sum',

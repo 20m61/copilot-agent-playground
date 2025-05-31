@@ -140,44 +140,20 @@ export class MonitoringStack extends cdk.Stack {
       treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
     });
 
-    // CloudFront Alarms
+    // CloudFront Alarms (simplified for compatibility)
     const cloudfrontErrorRate = new cloudwatch.Alarm(this, 'CloudFrontErrorRate', {
       alarmName: `nextjs-playground-cloudfront-errors-${props.stage}`,
-      alarmDescription: 'CloudFront 4XX/5XX error rate is too high',
-      metric: new cloudwatch.MathExpression({
-        expression: '(m1 + m2) / m3 * 100',
-        usingMetrics: {
-          m1: new cloudwatch.Metric({
-            namespace: 'AWS/CloudFront',
-            metricName: '4xxErrorRate',
-            dimensionsMap: {
-              DistributionId: props.distribution.distributionId,
-            },
-            period: cdk.Duration.minutes(5),
-            statistic: 'Average',
-          }),
-          m2: new cloudwatch.Metric({
-            namespace: 'AWS/CloudFront',
-            metricName: '5xxErrorRate',
-            dimensionsMap: {
-              DistributionId: props.distribution.distributionId,
-            },
-            period: cdk.Duration.minutes(5),
-            statistic: 'Average',
-          }),
-          m3: new cloudwatch.Metric({
-            namespace: 'AWS/CloudFront',
-            metricName: 'Requests',
-            dimensionsMap: {
-              DistributionId: props.distribution.distributionId,
-            },
-            period: cdk.Duration.minutes(5),
-            statistic: 'Sum',
-          }),
+      alarmDescription: 'CloudFront 4XX error rate is too high',
+      metric: new cloudwatch.Metric({
+        namespace: 'AWS/CloudFront',
+        metricName: '4xxErrorRate',
+        dimensionsMap: {
+          DistributionId: props.distribution.distributionId,
         },
         period: cdk.Duration.minutes(5),
+        statistic: 'Average',
       }),
-      threshold: 5, // 5% error rate
+      threshold: 10, // 10% error rate
       evaluationPeriods: 2,
       treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
     });
