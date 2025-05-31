@@ -1,5 +1,6 @@
 import * as cdk from 'aws-cdk-lib';
 import * as cloudwatch from 'aws-cdk-lib/aws-cloudwatch';
+import * as cloudwatchActions from 'aws-cdk-lib/aws-cloudwatch-actions';
 import * as sns from 'aws-cdk-lib/aws-sns';
 import * as snsSubscriptions from 'aws-cdk-lib/aws-sns-subscriptions';
 import * as budgets from 'aws-cdk-lib/aws-budgets';
@@ -169,7 +170,7 @@ export class MonitoringStack extends cdk.Stack {
       dynamoWriteThrottles,
       cloudfrontErrorRate,
     ].forEach(alarm => {
-      alarm.addAlarmAction(new cloudwatch.SnsAction(this.alertTopic));
+      alarm.addAlarmAction(new cloudwatchActions.SnsAction(this.alertTopic));
     });
 
     // Create CloudWatch Dashboard
@@ -248,10 +249,10 @@ export class MonitoringStack extends cdk.Stack {
             ],
             right: [
               props.sessionTable.metricSuccessfulRequestLatency({
-                dimensions: { Operation: 'GetItem' },
+                dimensionsMap: { Operation: 'GetItem' },
               }),
               props.sessionTable.metricSuccessfulRequestLatency({
-                dimensions: { Operation: 'PutItem' },
+                dimensionsMap: { Operation: 'PutItem' },
               }),
             ],
             period: cdk.Duration.minutes(5),
