@@ -124,9 +124,10 @@ jobs:
 
     - name: Upload Trivy scan results
       uses: github/codeql-action/upload-sarif@v3
-      if: always() && github.event_name == 'push'
+      if: always() && github.event_name == 'push' && github.repository == github.event.repository.full_name
       with:
         sarif_file: 'trivy-results.sarif'
+      continue-on-error: true
 
   validate-pr:
     name: 'PR Validation'
