@@ -32,35 +32,33 @@ export class SharedStack extends cdk.Stack {
       ],
     });
 
-    // Origin Access Control for CloudFront
-    const originAccessControl = new cloudfront.OriginAccessControl(this, 'OAC', {
-      description: 'Origin Access Control for S3 bucket',
-      originAccessControlOriginType: cloudfront.OriginAccessControlOriginType.S3,
-      signing: cloudfront.Signing.SIGV4_ALWAYS,
+    // Origin Access Control for CloudFront (using L1 construct for compatibility)
+    const originAccessControl = new cloudfront.CfnOriginAccessControl(this, 'OAC', {
+      originAccessControlConfig: {
+        description: 'Origin Access Control for S3 bucket',
+        name: `OAC-${this.stackName}`,
+        originAccessControlOriginType: 's3',
+        signingBehavior: 'always',
+        signingProtocol: 'sigv4',
+      },
     });
 
     // CloudFront Distribution
     this.distribution = new cloudfront.Distribution(this, 'Distribution', {
       defaultBehavior: {
-        origin: origins.S3BucketOrigin.withOriginAccessControl(this.assetsBucket, {
-          originAccessControl,
-        }),
+        origin: new origins.S3Origin(this.assetsBucket),
         viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
         cachePolicy: cloudfront.CachePolicy.CACHING_OPTIMIZED,
         compress: true,
       },
       additionalBehaviors: {
         '/api/*': {
-          origin: origins.S3BucketOrigin.withOriginAccessControl(this.assetsBucket, {
-            originAccessControl,
-          }),
+          origin: new origins.S3Origin(this.assetsBucket),
           viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
           cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
         },
         '/_next/static/*': {
-          origin: origins.S3BucketOrigin.withOriginAccessControl(this.assetsBucket, {
-            originAccessControl,
-          }),
+          origin: new origins.S3Origin(this.assetsBucket),
           viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
           cachePolicy: cloudfront.CachePolicy.CACHING_OPTIMIZED_FOR_UNCOMPRESSED_OBJECTS,
         },

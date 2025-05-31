@@ -36,7 +36,7 @@ export class FrontendStack extends cdk.Stack {
     // Lambda function for Next.js SSR
     this.nextjsFunction = new lambda.Function(this, 'NextjsFunction', {
       functionName: `nextjs-playground-${props.stage}`,
-      runtime: lambda.Runtime.NODEJS_20_X,
+      runtime: lambda.Runtime.NODEJS_18_X,
       handler: 'index.handler',
       code: lambda.Code.fromInline(`
         exports.handler = async (event) => {
