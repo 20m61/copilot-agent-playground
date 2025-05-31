@@ -4,6 +4,7 @@ import * as cdk from 'aws-cdk-lib';
 import { SharedStack } from '../lib/stacks/shared-stack';
 import { FrontendStack } from '../lib/stacks/frontend-stack';
 import { CicdStack } from '../lib/stacks/cicd-stack';
+import { MonitoringStack } from '../lib/stacks/monitoring-stack';
 
 const app = new cdk.App();
 
@@ -71,6 +72,29 @@ if (stage === 'staging' || stage === 'prod') {
 
   // CI/CD stack is independent of other stacks
   cicdStack.addDependency(frontendStack);
+}
+
+// Create monitoring stack for staging and production
+if (stage === 'staging' || stage === 'prod') {
+  const monitoringStack = new MonitoringStack(app, `${stackPrefix}-monitoring`, {
+    env,
+    stage,
+    lambdaFunction: frontendStack.nextjsFunction,
+    api: frontendStack.api,
+    sessionTable: frontendStack.sessionTable,
+    distribution: sharedStack.distribution,
+    alertEmail: app.node.tryGetContext('alertEmail'), // Optional: pass via context
+    description: `Monitoring and alerting for Next.js Playground - ${stage} environment`,
+    tags: {
+      Environment: stage,
+      Project: 'nextjs-playground',
+      ManagedBy: 'CDK',
+    },
+  });
+
+  // Monitoring depends on all other stacks
+  monitoringStack.addDependency(frontendStack);
+  monitoringStack.addDependency(sharedStack);
 }
 
 // Add stack-level tags
